@@ -1,0 +1,76 @@
+package riddler;
+
+/**************************************************************************************************
+ * AUTHOR: Pickled Human
+ * 
+ * Riddler Express Solution
+ * May 24th, 2019  |  One Small Step For Man, One Giant Coinflip For Mankind
+ * https://fivethirtyeight.com/features/one-small-step-for-man-one-giant-coin-flip-for-mankind/
+ * ************************************************************************************************/
+
+public class Riddler {
+    public static final int AVG_GOALS = 2;
+    public static final int TEAM_SIZE = 11;
+    public static final int PRECISION = 9;
+    
+    public static void main(String[] args) {
+        Riddler riddler = new Riddler();
+        solve();
+    }
+    
+    public static void solve() {
+        double contender;
+        boolean done = false;
+        int extras = 0;
+        while (!done) {
+            int weakest = TEAM_SIZE+extras;
+            int[] leftOut = new int[extras];
+            done = findExtras(weakest, leftOut, 0);
+            if (done) printResults(weakest, leftOut);
+            else extras++;
+        }
+    }
+
+    public static boolean findExtras(int weakest, int[] extras, int i) {
+        if (i == extras.length) { // everyone assigned, so check it
+            double result = hSum(weakest) - AVG_GOALS;
+            for (int j = 0; j < extras.length; j++) {
+                result -= harm(extras[j]);
+            }
+            return Math.abs(result) < 1.0/Math.pow(10, PRECISION);
+        } else { // not everyone assigned, assign i and call recursively
+            for (int j = (i == 0 ? 1 : extras[i-1]+1); j < weakest; j++) {
+                extras[i] = j;
+                if (findExtras(weakest, extras, i+1)) return true;
+            }
+        }
+        return false;
+    }
+    
+    public static void printResults(int weakest, int[] leftOut) {
+        System.out.println("Choosing "+TEAM_SIZE+" unique players, how we can score an average of exactly "+AVG_GOALS+" per game and have the strongest possible weakest player?");
+        System.out.println("\n---- SOLUTION ----");
+        System.out.println("Weakest player: " + weakest);
+        String members = ""; boolean missing;
+        for (int i = 1; i < weakest; i++) {
+            missing = false;
+            for (int j = 0; j < leftOut.length && !missing; j++) {
+                if (leftOut[j] == i) missing = true;
+            }
+            if (!missing) members += i + ", ";
+        }
+        System.out.println("Other members: " + members.substring(0, members.length()-2));
+    }
+    
+    public static double hSum(int n) { // sums harmonics from 1 to n inclusive
+        double sum = 0;
+        for (int i = 1; i <= n; i++) {
+            sum += harm(i);
+        }
+        return sum;
+    }
+    
+    public static double harm(int n) {
+        return 1.0/n;
+    }
+}
