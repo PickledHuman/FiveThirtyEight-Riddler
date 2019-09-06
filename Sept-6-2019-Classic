@@ -1,0 +1,139 @@
+package riddler;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.MathContext;
+
+/**************************************************************************************************
+ * AUTHOR: Pickled Human
+ * 
+ * Riddler Express Solution
+ * September 6th, 2019  |  What Are Your Chances Of Winning The U.S. Open?
+ * https://fivethirtyeight.com/features/what-are-your-chances-of-winning-the-u-s-open/
+ * 
+ * The code is pretty disgusting, right in line with how tennis is scored,
+ * But it relies on the sound mathematics of combinatorics and infinite geometric series sums.
+ * Kept most arithmetic in the BigInteger class; used BigDecimal only to display final results rounded to 10 decimal places.
+ * ************************************************************************************************/
+
+public class Riddler {
+
+    public static void main(String[] args) {
+        Riddler riddler = new Riddler();
+        try {
+            long startTime = System.nanoTime();
+            riddler.solve();
+            long endTime = System.nanoTime();
+            long duration = (endTime - startTime);
+            System.out.println("Executed in " + duration / Math.pow(10, 6) + " milliseconds.");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void solve() {
+        Probability point = new Probability(BigInteger.valueOf(11),BigInteger.valueOf(20));
+        System.out.println("Probability of winning any given point: "+point.toDecimal());
+        System.out.println("Probability of winning a deuce: "+winDeuce(point).toDecimal());
+        Probability game = winGame(point);
+        System.out.println("Probability of winning any given game: "+game.toDecimal());
+        Probability set = winSet(game);
+        System.out.println("Probability of winning any given set: "+set.toDecimal());
+        Probability match = winMatch(set, 5);
+        System.out.println("Probability of winning a match (men's): "+match.toDecimal());
+        Probability tourney = winTournament(match);
+        System.out.println("Probability of winning the tournament (men's): "+tourney.toDecimal());
+        match = winMatch(set, 3);
+        System.out.println("Probability of winning a match (women's): "+match.toDecimal());
+        tourney = winTournament(match);
+        System.out.println("Probability of winning the tournament (women's): "+tourney.toDecimal());
+    }
+    
+    public static Probability winGame(Probability win) {
+        Probability q = win.q();
+        return win.pow(4).add(win.pow(4).multiply(q).multiply(4)).add(win.pow(5).multiply(q.pow(2)).multiply(10)).add(win.pow(3).multiply(q.pow(3)).multiply(20).multiply(winDeuce(win)));
+    }
+    
+    public static Probability winDeuce(Probability win) {
+        Probability a1 = win.multiply(win);
+        Probability r = new Probability(BigInteger.ONE,BigInteger.ONE).add((a1.add(win.q().multiply(win.q()))).multiply(-1));
+        return new Probability(a1.n.multiply(r.q().d),a1.d.multiply(r.q().n));
+    }
+    
+    public static Probability winSet(Probability win) { // first to 6, or 7 if 5-5
+        Probability q = win.q();
+        Probability result = win.pow(6); // 6-0
+        result = result.add(win.pow(6).multiply(q).multiply(6)); // 6-1
+        result = result.add(win.pow(6).multiply(q.pow(2)).multiply(21)); // 6-2
+        result = result.add(win.pow(6).multiply(q.pow(3)).multiply(56)); // 6-3
+        result = result.add(win.pow(6).multiply(q.pow(4)).multiply(126)); // 6-4
+        
+        Probability tiebreaker = (win.multiply(win)).add(win.pow(2).multiply(q).multiply(2));
+        result = result.add(win.pow(5).multiply(q.pow(5)).multiply(252).multiply(tiebreaker));
+        return result;
+    }
+    
+    public static Probability winMatch(Probability win, int bestOf) {
+        if (bestOf == 5) {
+            Probability result = win.pow(5).add(win.pow(5).multiply(win.q()).multiply(5)).add(win.pow(5).multiply(win.q().pow(2)).multiply(15));
+            return result.add(win.pow(5).multiply(win.q().pow(3)).multiply(35)).add(win.pow(5).multiply(win.q().pow(4)).multiply(70));
+        }
+        else if (bestOf == 3) return win.pow(3).add(win.pow(3).multiply(win.q()).multiply(3)).add(win.pow(3).multiply(win.q().pow(2)).multiply(6));
+        return new Probability(BigInteger.ZERO,BigInteger.ONE);
+    }
+    
+    public static Probability winTournament(Probability win) {
+        return win.pow(7);
+    }
+    
+    public static class Probability {
+        protected BigInteger n;
+        protected BigInteger d;
+        
+        public Probability (BigInteger n, BigInteger d) {
+            BigInteger gcd = gcd(n,d);
+            this.n = n.divide(gcd);
+            this.d = d.divide(gcd);
+        }
+        
+        public Probability multiply(Probability b) {
+            Probability p = new Probability(this.n.multiply(b.n), this.d.multiply(b.d));
+            return p;
+        }
+        
+        public Probability multiply(int i) {
+            Probability p = new Probability(this.n.multiply(BigInteger.valueOf(i)), this.d);
+            return p;
+        }
+        
+        public Probability add(Probability b) {
+            BigInteger lcm = (this.d.multiply(b.d)).divide(gcd(this.d,b.d));
+            Probability p = new Probability(this.n.multiply(lcm.divide(this.d)).add(b.n.multiply(lcm.divide(b.d))), lcm);
+            return p;
+        }
+        
+        public BigDecimal toDecimal() {
+            MathContext mc = new MathContext(10);
+            return new BigDecimal(this.n).divide(new BigDecimal(this.d), mc);
+        }
+        
+        public Probability pow(int e) {
+            Probability p = new Probability(this.n.pow(e), this.d.pow(e));
+            return p;
+        }
+        
+        public Probability q() {
+            return new Probability(this.d.subtract(n), this.d);
+        }
+    }
+    
+    public static BigInteger gcd(BigInteger a, BigInteger b) {
+        BigInteger temp;
+        while (!b.equals(BigInteger.ZERO)) {
+            temp = b;
+            b = a.mod(b);
+            a = temp;
+        }
+        return a;
+    }
+}
